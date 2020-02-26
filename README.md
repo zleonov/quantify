@@ -13,9 +13,9 @@ With Quantify do yourself a favor and write code like this:
 
 ```java
 final Path file = Paths.get(...);
-final long size = Files.size(file);
+final long bytes = Files.size(file);
 ...
-final double megabytes = BinaryByteUnit.BYTES.convert(size, BinaryByteUnit.MEGABYTES);
+final double megabytes = BinaryByteUnit.BYTES.toMegabytes(bytes);
 ...
 System.out.println(BinaryByteUnit.format(megabytes, BinaryByteUnit.MEGABYTES));
 ```
@@ -35,4 +35,4 @@ What's next?
 
 Can I help?
 ===========
-Yes! Send me your patches and contributions. I will come up with an Contributor License Agreement. 
+Yes! Send me your patches and contributions. I will come up with a Contributor License Agreement. 
