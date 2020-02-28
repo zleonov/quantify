@@ -8,8 +8,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <!-- default packaging is a jar <packaging>jar</packaging> -->
 
-    <name>jrex</name>
-    <description>Java utilities to represent and convert digital quantities of bits and bytes</description>
+    <name>Quantify</name>
+    <description>Java utilities to represent and convert digital quantities of bits and bytes.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,8 +17,7 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven-javadoc-plugin.version>3.0.0</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.0.0</maven-source-plugin.version>
-        <java.src.path>3rd-party/java-sources</java.src.path>
-        <guava.src.path>3rd-party/guava-sources</guava.src.path>
+        <java.src.path></java.src.path>
     </properties>
 
     <build>
