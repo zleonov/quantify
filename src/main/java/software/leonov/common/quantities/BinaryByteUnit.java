@@ -1,4 +1,4 @@
-package software.leonov.quantify;
+package software.leonov.common.quantities;
 /*
  * Copyright (C) 2019 Zhenya Leonov
  *
@@ -22,8 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Defines the commonly used <a target="_blank" href="https://en.wikipedia.org/wiki/International_System_of_Units">SI
- * prefixes</a> to represent the byte sizes of the file system and memory.
+ * Defines the commonly used binary prefixes specified by
+ * <a target="_blank" href="https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01">JEDEC Standard
+ * 100B.01</a> to represent the <i>power of 2</i> byte sizes of the file system and memory.
  * <p>
  * This {@code Enum} is a poor attempt to deal with the surprisingly <a target="_blank" href=
  * "https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Dates_and_numbers#Quantities_of_bytes_and_bits" >difficult
@@ -32,14 +33,14 @@ import java.util.concurrent.ConcurrentMap;
  * For example:
  * 
  * <pre>
- * System.out.println(DecimalByteUnit.MEGABYTES.convert(2.5, DecimalByteUnit.KILOBYTES)); // prints 2500.0
+ * System.out.println(BinaryByteUnit.MEGABYTES.convert(2.5, BinaryByteUnit.KILOBYTES)); // prints 2560.0
  *
- * System.out.println(DecimalByteUnit.format(2500.0, DecimalByteUnit.KILOBYTES)); // prints 2.5MB
+ * System.out.println(BinaryByteUnit.format(2560.0, BinaryByteUnit.KILOBYTES)); // prints 2.5MB
  * </pre>
  * 
  * @author Zhenya Leonov
  */
-public enum DecimalByteUnit {
+public enum BinaryByteUnit {
 
     /**
      * The base unit of information, a bit can have only one of two values, 0 or 1.
@@ -52,71 +53,71 @@ public enum DecimalByteUnit {
     BYTES(1, "B"),
 
     /**
-     * A kilobyte (kB) consists of 1000 bytes.
+     * A kilobyte (KB) consists of 1024 bytes.
      */
-    KILOBYTES(1000, "kB"),
+    KILOBYTES(1024, "KB"),
 
     /**
-     * A megabyte (MB) consists of 1000 kilobytes.
+     * A megabyte (MB) consists of 1024 kilobytes.
      */
-    MEGABYTES(KILOBYTES.base * 1000, "MB"),
+    MEGABYTES(KILOBYTES.base * 1024, "MB"),
 
     /**
-     * A gigabyte (GB) consists of 1000 megabytes.
+     * A gigabyte (GB) consists of 1024 megabytes.
      */
-    GIGABYTES(MEGABYTES.base * 1000, "GB"),
+    GIGABYTES(MEGABYTES.base * 1024, "GB"),
 
     /**
-     * A terabyte (TB) consists of 1000 gigabytes.
+     * A terabyte (TB) consists of 1024 gigabytes.
      */
-    TERABYTES(GIGABYTES.base * 1000, "TB"),
+    TERABYTES(MEGABYTES.base * 1024, "TB"),
 
     /**
-     * A petabyte (PB) consists of 1000 terabytes.
+     * A petabyte (PB) consists of 1024 terabytes.
      */
-    PETABYTES(TERABYTES.base * 1000, "PB"),
+    PETABYTES(TERABYTES.base * 1024, "PB"),
 
     /**
-     * An exabyte (EB) consists of 1000 petabytes.
+     * An exabyte (EB) consists of 1024 petabytes.
      */
-    EXABYTES(PETABYTES.base * 1000, "EB"),
+    EXABYTES(PETABYTES.base * 1024, "EB"),
 
     /**
-     * A zettabyte (ZB) consists of 1000 exabytes.
+     * A zettabyte (ZB) consists of 1024 exabytes.
      */
-    ZETTABYTES(EXABYTES.base * 1000, "ZB"),
+    ZETTABYTES(EXABYTES.base * 1024, "ZB"),
 
     /**
-     * A yottabyte (YB) consists of 1000 zettabytes.
+     * A yottabyte (YB) consists of 1024 zettabytes.
      */
-    YOTTABYTES(ZETTABYTES.base * 1000, "YB");
+    YOTTABYTES(ZETTABYTES.base * 1024, "YB");
 
     private static final ConcurrentMap<Locale, NumberFormat> formats = new ConcurrentHashMap<>();
 
     private final float base;
     private final String prefix;
 
-    private DecimalByteUnit(final float base, final String prefix) {
+    private BinaryByteUnit(final float base, final String prefix) {
         this.base = base;
         this.prefix = prefix;
     }
 
     /**
-     * Converts the given value from this {@code DecimalByteUnit} to the specified {@code DecimalByteUnit}.
+     * Converts the given value from this {@code BinaryByteUnit} to the specified {@code BinaryByteUnit}.
      * 
      * @param value the value to convert
-     * @param unit  the specified {@code DecimalByteUnit}
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified {@code DecimalByteUnit}
+     * @param unit  the specified {@code BinaryByteUnit}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@code BinaryByteUnit}
      * @throws ArithmeticException if the result is not finite
      */
-    public double convert(final double value, final DecimalByteUnit unit) {
+    public double convert(final double value, final BinaryByteUnit unit) {
         if (unit == null)
             throw new NullPointerException("unit == null");
         if (!Double.isFinite(value)) // check that the value is not infinite or NaN
             throw new IllegalArgumentException(Double.toString(value));
         if (Double.doubleToRawLongBits(value) < 0) // check that the value is positive
             throw new IllegalArgumentException("value < 0");
-        if (this == DecimalByteUnit.BITS && value != Math.rint(value)) // BinaryByteUnit.BITS cannot be fractional
+        if (this == BinaryByteUnit.BITS && value != Math.rint(value)) // BinaryByteUnit.BITS cannot be fractional
             throw new IllegalArgumentException("invalid value: " + value + " bits");
 
         final double f = (value * base) / unit.base;
@@ -124,130 +125,124 @@ public enum DecimalByteUnit {
         if (Double.isInfinite(f)) // can this happen at this point?
             throw new ArithmeticException();
 
-//        final Double n = unit == DecimalByteUnit.BITS ? Math.ceil(f) : f;
+//        final Double n = unit == BinaryByteUnit.BITS ? Math.ceil(f) : f;
 //
 //        if (DoubleMath.isMathematicalInteger(n))
 //            return n.longValue();
 //        else
 //            return n;
 
-        return unit == DecimalByteUnit.BITS ? Math.ceil(f) : f;
+        return unit == BinaryByteUnit.BITS ? Math.ceil(f) : f;
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.BITS)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.BITS)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified {@link DecimalByteUnit#BITS}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#BITS}
      */
     public double toBits(final double value) {
-        return convert(value, DecimalByteUnit.BITS);
+        return convert(value, BinaryByteUnit.BITS);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.BYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.BYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified {@link DecimalByteUnit#BYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#BYTES}
      */
     public double toBytes(final double value) {
-        return convert(value, DecimalByteUnit.BYTES);
+        return convert(value, BinaryByteUnit.BYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.KILOBYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.KILOBYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#KILOBYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#KILOBYTES}
      */
     public double toKillobytes(final double value) {
-        return convert(value, DecimalByteUnit.KILOBYTES);
+        return convert(value, BinaryByteUnit.KILOBYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.MEGABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.MEGABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#MEGABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#MEGABYTES}
      */
     public double toMegabytes(final double value) {
-        return convert(value, DecimalByteUnit.MEGABYTES);
+        return convert(value, BinaryByteUnit.MEGABYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.GIGABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.GIGABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#GIGABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#GIGABYTES}
      */
     public double toGigabytes(final double value) {
-        return convert(value, DecimalByteUnit.GIGABYTES);
+        return convert(value, BinaryByteUnit.GIGABYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.TERABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.TERABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#TERABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#TERABYTES}
      */
     public double toTerabytes(final double value) {
-        return convert(value, DecimalByteUnit.TERABYTES);
+        return convert(value, BinaryByteUnit.TERABYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.PETABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.PETABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#PETABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#PETABYTES}
      */
     public double toPetabytes(final double value) {
-        return convert(value, DecimalByteUnit.PETABYTES);
+        return convert(value, BinaryByteUnit.PETABYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.EXABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.EXABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified {@link DecimalByteUnit#EXABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#EXABYTES}
      */
     public double toExabytes(final double value) {
-        return convert(value, DecimalByteUnit.EXABYTES);
+        return convert(value, BinaryByteUnit.EXABYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.ZETTABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.ZETTABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#ZETTABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#ZETTABYTES}
      */
     public double toZettabytes(final double value) {
-        return convert(value, DecimalByteUnit.ZETTABYTES);
+        return convert(value, BinaryByteUnit.ZETTABYTES);
     }
 
     /**
-     * Shorthand for {@link #convert(double, DecimalByteUnit) convert(value, DecimalByteUnit.YOTTABYTES)}
+     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.YOTTABYTES)}
      * 
      * @param value the value to convert
-     * @return the given value converted from this {@code DecimalByteUnit} to the specified
-     *         {@link DecimalByteUnit#YOTTABYTES}
+     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#YOTTABYTES}
      */
     public double toYottabytes(final double value) {
-        return convert(value, DecimalByteUnit.YOTTABYTES);
+        return convert(value, BinaryByteUnit.YOTTABYTES);
     }
 
     /**
-     * Returns the <a target="_blank" href="https://en.wikipedia.org/wiki/International_System_of_Units">SI prefix</a> of
-     * this {@code DecimalByteUnit}.
+     * Returns the prefix of this {@code BinaryByteUnit} as defined by the
+     * <a target="_blank" href="https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01">JEDEC Standard
+     * 100B.01</a> specification.
      * 
-     * @return the prefix of this {@code DecimalByteUnit} as defined by the
-     *         <a target="_blank" href="https://en.wikipedia.org/wiki/International_System_of_Units">SI prefix</a>
-     *         specification
+     * @return the prefix of this {@code BinaryByteUnit} as defined by the
+     *         <a target="_blank" href="https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01">JEDEC
+     *         Standard 100B.01</a> specification
      */
     @Override
     public String toString() {
@@ -261,7 +256,7 @@ public enum DecimalByteUnit {
      * @param unit  the unit of the value
      * @return a human-readable string representing the specified value in the given unit
      */
-    public static String format(double value, final DecimalByteUnit unit) {
+    public static String format(double value, final BinaryByteUnit unit) {
         return format(value, unit, Locale.getDefault());
     }
 
@@ -273,7 +268,7 @@ public enum DecimalByteUnit {
      * @param locale the {@link Locale} to use when formatting the value
      * @return a human-readable string representing the specified value in the given unit
      */
-    public static String format(double value, final DecimalByteUnit unit, final Locale locale) {
+    public static String format(double value, final BinaryByteUnit unit, final Locale locale) {
         return format(value, unit, formats.computeIfAbsent(locale, k -> {
             final NumberFormat format = NumberFormat.getNumberInstance(locale);
             format.setMaximumFractionDigits(2);
@@ -289,18 +284,18 @@ public enum DecimalByteUnit {
      * @param format the {@link NumberFormat} to use when formatting the value
      * @return a human-readable string representing the specified value in the given unit
      */
-    public static String format(double value, final DecimalByteUnit unit, final NumberFormat format) {
+    public static String format(double value, final BinaryByteUnit unit, final NumberFormat format) {
         if (unit == null)
             throw new NullPointerException("unit == null");
         if (!Double.isFinite(value)) // check that the value is not infinite or NaN
             throw new IllegalArgumentException(Double.toString(value));
         if (Double.doubleToRawLongBits(value) < 0) // check that the value is positive
             throw new IllegalArgumentException("value < 0");
-        if (unit == DecimalByteUnit.BITS && value != Math.rint(value)) // BinaryByteUnit.BITS cannot be fractional
+        if (unit == BinaryByteUnit.BITS && value != Math.rint(value)) // BinaryByteUnit.BITS cannot be fractional
             throw new IllegalArgumentException("invalid value: " + value + " bits");
 
         int index = unit.ordinal();
-        final int base = value >= 1 ? unit == DecimalByteUnit.BITS ? 8 : 1000 : unit == DecimalByteUnit.BYTES ? 8 : 1000;
+        final int base = value >= 1 ? unit == BinaryByteUnit.BITS ? 8 : 1024 : unit == BinaryByteUnit.BYTES ? 8 : 1024;
 
         if (value >= 1)
             while (value >= base && index++ < values().length - 1)
@@ -312,16 +307,16 @@ public enum DecimalByteUnit {
         final String size = format.format(value);
 
         /*
-         * We have to check if the formatted value has been rounded to 1000, in which case it needs to become "1" and the unit
+         * We have to check if the formatted value has been rounded to 1024, in which case it needs to become "1" and the unit
          * needs to be incremented. The most naive and strait forward way to accomplish this is to parse the string using the
          * same NumberFormat that produced it.
          * 
          * We can use intValue() to compare the result since we ensure it is not negative, we know it can never be more than
-         * 1000, and intValue() just casts it to a primitive int which effectively performs the Math.floor function on positive
+         * 1024, and intValue() just casts it to a primitive int which effectively performs the Math.floor function on positive
          * numbers.
          */
         try {
-            if (index < values().length && format.parse(size).intValue() == 1000)
+            if (index < values().length && format.parse(size).intValue() == 1024)
                 return "1" + prefix(++index);
         } catch (final ParseException e) {
             throw new AssertionError(); // cannot happen
@@ -330,7 +325,7 @@ public enum DecimalByteUnit {
         return size + prefix(index);
     }
 
-    private static DecimalByteUnit prefix(final int index) {
+    private static BinaryByteUnit prefix(final int index) {
         return values()[Math.min(index, values().length - 1)];
     }
 
