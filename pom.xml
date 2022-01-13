@@ -59,7 +59,7 @@
                     <docencoding>UTF-8</docencoding>
                     <charset>UTF-8</charset>
                     <show>public</show>
-                    <doclint>-html</doclint>
+                    <doclint>none</doclint>
                     <linksource>true</linksource>
                     <doctitle>
                         <![CDATA[
