@@ -1,4 +1,4 @@
-Quantify
+quantify
 ========
 
 Quantify is a *poor* attempt to deal with the [surprisingly difficult](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Dates_and_numbers#Quantities_of_bytes_and_bits) issue of representing the size of digital quantities. 
