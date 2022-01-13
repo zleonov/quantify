@@ -8,7 +8,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <!-- default packaging is a jar <packaging>jar</packaging> -->
 
-    <name>Quantify</name>
+    <name>quantify</name>
     <description>Java utilities to represent and convert digital quantities of bits and bytes.</description>
 
     <properties>
