@@ -1,7 +1,7 @@
 quantify
 ========
 
-Quantify is a *poor* attempt to deal with the [surprisingly difficult](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Dates_and_numbers#Quantities_of_bytes_and_bits) issue of representing the size of digital quantities. 
+quantify is a *poor* attempt to deal with the [surprisingly difficult](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Dates_and_numbers#Quantities_of_bytes_and_bits) issue of representing the size of digital quantities. 
 
 Overview
 ========
@@ -9,7 +9,7 @@ Overview
 It is notoriously hard to deal with the digital units of bytes and bits when representing and converting sizes of the file system and memory.
 Do you use [SI](https://en.wikipedia.org/wiki/International_System_of_Units) Units? Do you use the [JEDEC](https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01) Standard? How do you print a human readable string to ``System.out``? It is so hard that [The most copied StackOverflow snippet of all time is flawed](https://programming.guide/worlds-most-copied-so-snippet.html).
 
-With Quantify do yourself a favor and write code like this:
+With quantify do yourself a favor and write code like this:
 
 ```java
 final Path file = Paths.get(...);
