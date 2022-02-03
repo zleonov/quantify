@@ -15,9 +15,10 @@ With quantify do yourself a favor and write code like this:
 final Path file = Paths.get(...);
 final long bytes = Files.size(file);
 ...
-final double megabytes = BinaryByteUnit.BYTES.toMegabytes(bytes);
+
+final long megabytes = DecimalByteUnit.BYTES.toMegabytes(bytes);
 ...
-System.out.println(BinaryByteUnit.format(megabytes, BinaryByteUnit.MEGABYTES));
+System.out.println(DataSizeFormatter.usingDefaultLocale().format(35345, DecimalByteUnit.MEGABYTES));
 ```
 
 Goals
