@@ -13,12 +13,11 @@ With quantify do yourself a favor and write code like this:
 
 ```java
 final Path file = Paths.get(...);
-final long bytes = Files.size(file);
+final long size = Files.size(file);
 ...
-
+System.out.println(DataSizeFormatter.usingDefaultLocale().format(size, DecimalByteUnit.BYTES));
+...
 final long megabytes = DecimalByteUnit.BYTES.toMegabytes(bytes);
-...
-System.out.println(DataSizeFormatter.usingDefaultLocale().format(35345, DecimalByteUnit.MEGABYTES));
 ```
 
 Goals
