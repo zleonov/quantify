@@ -1,3 +1,4 @@
+
 package software.leonov.common.quantities;
 /*
  * Copyright (C) 2019 Zhenya Leonov
@@ -15,37 +16,31 @@ package software.leonov.common.quantities;
  * limitations under the License.
  */
 
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import static java.lang.Math.multiplyExact;
+import static software.leonov.common.quantities.MoreMath.divideExact;
+
+import java.math.RoundingMode;
+import java.util.Objects;
 
 /**
- * Defines the commonly used binary prefixes specified by
- * <a target="_blank" href="https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01">JEDEC Standard
- * 100B.01</a> to represent the <i>power of 2</i> byte sizes of the file system and memory.
- * <p>
- * This {@code Enum} is a poor attempt to deal with the surprisingly <a target="_blank" href=
+ * Defines the commonly used <a href="https://physics.nist.gov/cuu/Units/binary.html" target="_blank">binary
+ * prefixes</a> that represent the <i>power-of-2</i> byte size of the file system and memory. This {@code Enum} is a
+ * poor attempt to deal with the surprisingly <a target="_blank" href=
  * "https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Dates_and_numbers#Quantities_of_bytes_and_bits" >difficult
  * issue</a> of representing the size of digital quantities.
  * <p>
- * For example:
- * 
- * <pre>
- * System.out.println(BinaryByteUnit.MEGABYTES.convert(2.5, BinaryByteUnit.KILOBYTES)); // prints 2560.0
- *
- * System.out.println(BinaryByteUnit.format(2560.0, BinaryByteUnit.KILOBYTES)); // prints 2.5MB
- * </pre>
+ * A {@code BinaryByteUnit} does not hold byte size information, but only helps organize and use byte size
+ * representations that may be maintained separately across various contexts.
+ * <p>
+ * The <i>convert</i> methods in this {@code Enum} are directional, meaning they accept negative arguments. Conversions
+ * from finer to coarser granularities round towards the <i>nearest neighbor</i> using {@link RoundingMode#HALF_UP}. For
+ * example converting to {@code KIBIBYTES.from(511, BYTES) == 0} while converting to
+ * {@code KIBIBYTES.from(512, BYTES) == 1}. Conversions from coarser to finer granularities with arguments that would
+ * overflow a {@code long} will result in an {@code ArithmeticException}.
  * 
  * @author Zhenya Leonov
  */
 public enum BinaryByteUnit {
-
-    /**
-     * The base unit of information, a bit can have only one of two values, 0 or 1.
-     */
-    BITS(1F / 8, "b"),
 
     /**
      * A single byte consists of 8 bits.
@@ -53,280 +48,331 @@ public enum BinaryByteUnit {
     BYTES(1, "B"),
 
     /**
-     * A kilobyte (KB) consists of 1024 bytes.
+     * A kibibyte (KiB) consists of 1024 bytes.
      */
-    KILOBYTES(1024, "KB"),
+    KIBIBYTES(1024, "KiB"),
 
     /**
-     * A megabyte (MB) consists of 1024 kilobytes.
+     * A mebibyte (MiB) consists of 1024 kibibytes.
      */
-    MEGABYTES(KILOBYTES.base * 1024, "MB"),
+    MEBIBYTES(KIBIBYTES.base * 1024, "MiB"),
 
     /**
-     * A gigabyte (GB) consists of 1024 megabytes.
+     * A gibibyte (GiB) consists of 1024 mebibytes.
      */
-    GIGABYTES(MEGABYTES.base * 1024, "GB"),
+    GIBIBYTES(MEBIBYTES.base * 1024, "GiB"),
 
     /**
-     * A terabyte (TB) consists of 1024 gigabytes.
+     * A tebibyte (TiB) consists of 1024 gibibytes.
      */
-    TERABYTES(MEGABYTES.base * 1024, "TB"),
+    TEBIBYTES(GIBIBYTES.base * 1024, "TiB"),
 
     /**
-     * A petabyte (PB) consists of 1024 terabytes.
+     * A pebibyte (PiB) consists of 1024 tebibytes.
      */
-    PETABYTES(TERABYTES.base * 1024, "PB"),
+    PEBIBYTES(TEBIBYTES.base * 1024, "PiB"),
 
     /**
-     * An exabyte (EB) consists of 1024 petabytes.
+     * An exabyte (EiB) consists of 1024 pebibytes.
      */
-    EXABYTES(PETABYTES.base * 1024, "EB"),
+    EXBIBYTES(PEBIBYTES.base * 1024, "EiB"),
 
     /**
-     * A zettabyte (ZB) consists of 1024 exabytes.
+     * A zebibyte (ZiB) consists of 1024 exbibyte.
      */
-    ZETTABYTES(EXABYTES.base * 1024, "ZB"),
+    ZEBIBYTES(EXBIBYTES.base * 1024, "ZiB"),
 
     /**
-     * A yottabyte (YB) consists of 1024 zettabytes.
+     * A yobibyte (YiB) consists of 1024 zebibytes.
      */
-    YOTTABYTES(ZETTABYTES.base * 1024, "YB");
+    YOBIBYTES(ZEBIBYTES.base * 1024, "YiB");
 
-    private static final ConcurrentMap<Locale, NumberFormat> formats = new ConcurrentHashMap<>();
+    final long base;
+    private final String symbol;
 
-    private final float base;
-    private final String prefix;
-
-    private BinaryByteUnit(final float base, final String prefix) {
+    private BinaryByteUnit(final long base, final String symbol) {
         this.base = base;
-        this.prefix = prefix;
+        this.symbol = symbol;
     }
 
-    /**
-     * Converts the given value from this {@code BinaryByteUnit} to the specified {@code BinaryByteUnit}.
-     * 
-     * @param value the value to convert
-     * @param unit  the specified {@code BinaryByteUnit}
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@code BinaryByteUnit}
-     * @throws ArithmeticException if the result is not finite
-     */
-    public double convert(final double value, final BinaryByteUnit unit) {
-        if (unit == null)
-            throw new NullPointerException("unit == null");
-        if (!Double.isFinite(value)) // check that the value is not infinite or NaN
-            throw new IllegalArgumentException(Double.toString(value));
-        if (Double.doubleToRawLongBits(value) < 0) // check that the value is positive
-            throw new IllegalArgumentException("value < 0");
-        if (this == BinaryByteUnit.BITS && value != Math.rint(value)) // BinaryByteUnit.BITS cannot be fractional
-            throw new IllegalArgumentException("invalid value: " + value + " bits");
-
-        final double f = (value * base) / unit.base;
-
-        if (Double.isInfinite(f)) // can this happen at this point?
-            throw new ArithmeticException();
-
-//        final Double n = unit == BinaryByteUnit.BITS ? Math.ceil(f) : f;
+//    /**
+//     * Converts the given size from this {@code BinaryByteUnit} to the specified {@code BinaryByteUnit}.
+//     * 
+//     * @param size the size to convert
+//     * @param unit the specified {@code BinaryByteUnit}
+//     * @return the given size converted from this {@code BinaryByteUnit} to the specified {@code BinaryByteUnit}
+//     * @throws ArithmeticException if the result overflows a {@code long}
+//     */
+//    public long to(final long size, final BinaryByteUnit unit) {
+//        Objects.requireNonNull(unit, "unit == null");
 //
-//        if (DoubleMath.isMathematicalInteger(n))
-//            return n.longValue();
-//        else
-//            return n;
-
-        return unit == BinaryByteUnit.BITS ? Math.ceil(f) : f;
-    }
+//        if (this == unit)
+//            return size;
+//
+//        return divide(multiply(size, this.base), unit.base);
+//    }
+//
+//    /**
+//     * Converts the given size from this {@code BinaryByteUnit} to the specified {@code DecimalByteUnit}.
+//     * 
+//     * @param size the size to convert
+//     * @param unit the specified {@code DecimalByteUnit}
+//     * @return the given size converted from this {@code BinaryByteUnit} to the specified {@code DecimalByteUnit}
+//     * @throws ArithmeticException if the result overflows a {@code long}
+//     */
+//    public long to(final long size, final DecimalByteUnit unit) {
+//        Objects.requireNonNull(unit, "unit == null");
+//
+//        return divide(multiply(size, this.base), unit.base);
+//    }
+//
+//    /**
+//     * Converts the given size from this {@code BinaryByteUnit} to the specified {@code BitUnit}.
+//     * 
+//     * @param size the size to convert
+//     * @param unit the specified {@code BitUnit}
+//     * @return the given size converted from this {@code BinaryByteUnit} to the specified {@code BitUnit}
+//     * @throws ArithmeticException if the result overflows a {@code long}
+//     */
+//    public long to(final long size, final BitUnit unit) {
+//        Objects.requireNonNull(unit, "unit == null");
+//
+//        return multiply(divide(multiply(size, this.base), unit.base), 8);
+//    }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.BITS)}
+     * Shorthand for {@code BinaryByteUnit.BYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#BITS}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#BYTES}
      */
-    public double toBits(final double value) {
-        return convert(value, BinaryByteUnit.BITS);
+    public long toBytes(final long size) {
+        return BinaryByteUnit.BYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.BYTES)}
+     * Shorthand for {@code BinaryByteUnit.KIBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#BYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#KIBIBYTES}
      */
-    public double toBytes(final double value) {
-        return convert(value, BinaryByteUnit.BYTES);
+    public long toKibibytes(final long size) {
+        return BinaryByteUnit.KIBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.KILOBYTES)}
+     * Shorthand for {@code BinaryByteUnit.MEBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#KILOBYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#MEBIBYTES}
      */
-    public double toKillobytes(final double value) {
-        return convert(value, BinaryByteUnit.KILOBYTES);
+    public long toMebibytes(final long size) {
+        return BinaryByteUnit.MEBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.MEGABYTES)}
+     * Shorthand for {@code BinaryByteUnit.GIBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#MEGABYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#GIBIBYTES}
      */
-    public double toMegabytes(final double value) {
-        return convert(value, BinaryByteUnit.MEGABYTES);
+    public long toGibibytes(final long size) {
+        return BinaryByteUnit.GIBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.GIGABYTES)}
+     * Shorthand for {@code BinaryByteUnit.TEBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#GIGABYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#TEBIBYTES}
      */
-    public double toGigabytes(final double value) {
-        return convert(value, BinaryByteUnit.GIGABYTES);
+    public long toTebibytes(final long size) {
+        return BinaryByteUnit.TEBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.TERABYTES)}
+     * Shorthand for {@code BinaryByteUnit.PEBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#TERABYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#PEBIBYTES}
      */
-    public double toTerabytes(final double value) {
-        return convert(value, BinaryByteUnit.TERABYTES);
+    public long toPebibytes(final long size) {
+        return BinaryByteUnit.PEBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.PETABYTES)}
+     * Shorthand for {@code BinaryByteUnit.EXBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#PETABYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#EXBIBYTES}
      */
-    public double toPetabytes(final double value) {
-        return convert(value, BinaryByteUnit.PETABYTES);
+    public long toExbibytes(final long size) {
+        return BinaryByteUnit.EXBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.EXABYTES)}
+     * Shorthand for {@code BinaryByteUnit.ZEBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#EXABYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#ZEBIBYTES}
      */
-    public double toExabytes(final double value) {
-        return convert(value, BinaryByteUnit.EXABYTES);
+    public long toZebibytes(final long size) {
+        return BinaryByteUnit.ZEBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.ZETTABYTES)}
+     * Shorthand for {@code BinaryByteUnit.YOBIBYTES.from(size, this)}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#ZETTABYTES}
+     * @param size the size to convert
+     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#YOBIBYTES}
      */
-    public double toZettabytes(final double value) {
-        return convert(value, BinaryByteUnit.ZETTABYTES);
+    public long toYobibytes(final long size) {
+        return BinaryByteUnit.YOBIBYTES.from(size, this);
     }
 
     /**
-     * Shorthand for {@link #convert(double, BinaryByteUnit) convert(value, BinaryByteUnit.YOTTABYTES)}
+     * Converts the given size from the specified {@code BinaryByteUnit} to this {@code BinaryByteUnit}.
      * 
-     * @param value the value to convert
-     * @return the given value converted from this {@code BinaryByteUnit} to the specified {@link BinaryByteUnit#YOTTABYTES}
+     * @param size the size to convert
+     * @param unit the specified {@code BitUnit}
+     * @return the given size from the specified {@code BinaryByteUnit} to this {@code BinaryByteUnit}
+     * @throws ArithmeticException if the result overflows a {@code long}
      */
-    public double toYottabytes(final double value) {
-        return convert(value, BinaryByteUnit.YOTTABYTES);
+    public long from(final long size, final BinaryByteUnit unit) {
+        Objects.requireNonNull(unit, "unit == null");
+
+        if (this == unit)
+            return size;
+
+        return divideExact(multiplyExact(size, unit.base), this.base, RoundingMode.HALF_UP);
     }
 
     /**
-     * Returns the prefix of this {@code BinaryByteUnit} as defined by the
-     * <a target="_blank" href="https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01">JEDEC Standard
-     * 100B.01</a> specification.
+     * Converts the given size from the specified {@code DecimalByteUnit} to this {@code BinaryByteUnit}.
      * 
-     * @return the prefix of this {@code BinaryByteUnit} as defined by the
-     *         <a target="_blank" href="https://en.wikipedia.org/wiki/JEDEC_memory_standards#JEDEC_Standard_100B.01">JEDEC
-     *         Standard 100B.01</a> specification
+     * @param size the size to convert
+     * @param unit the specified {@code BitUnit}
+     * @return the given size from the specified {@code DecimalByteUnit} to this {@code BinaryByteUnit}
+     * @throws ArithmeticException if the result overflows a {@code long}
+     */
+    public long from(final long size, final DecimalByteUnit unit) {
+        Objects.requireNonNull(unit, "unit == null");
+        return divideExact(multiplyExact(size, unit.base), this.base, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Converts the given size from the specified {@code BitUnit} to this {@code BinaryByteUnit}.
+     * 
+     * @param size the size to convert
+     * @param unit the specified {@code BitUnit}
+     * @return the given size from the specified {@code BitUnit} to this {@code BinaryByteUnit}
+     * @throws ArithmeticException if the result overflows a {@code long}
+     */
+    public long from(final long size, final BitUnit unit) {
+        Objects.requireNonNull(unit, "unit == null");
+        return multiplyExact(divideExact(multiplyExact(size, unit.base), this.base, RoundingMode.HALF_UP), 8);
+    }
+
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.BYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#BYTES}
+//     */
+//    public long fromBytes(final long size) {
+//        return from(size, BinaryByteUnit.BYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.KIBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#KIBIBYTES}
+//     */
+//    public long fromKibibytes(final long size) {
+//        return from(size, BinaryByteUnit.KIBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.MEBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#MEBIBYTES}
+//     */
+//    public long fromMebibytes(final long size) {
+//        return from(size, BinaryByteUnit.MEBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.GIBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#GIBIBYTES}
+//     */
+//    public long fromGibibytes(final long size) {
+//        return from(size, BinaryByteUnit.GIBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.TEBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#TEBIBYTES}
+//     */
+//    public long fromTebibytes(final long size) {
+//        return from(size, BinaryByteUnit.TEBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.PEBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#PEBIBYTES}
+//     */
+//    public long fromPebibytes(final long size) {
+//        return from(size, BinaryByteUnit.PEBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.EXBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#EXBIBYTES}
+//     */
+//    public long fromExbibytes(final long size) {
+//        return from(size, BinaryByteUnit.EXBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.ZEBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#ZEBIBYTES}
+//     */
+//    public long fromZebibytes(final long size) {
+//        return from(size, BinaryByteUnit.ZEBIBYTES);
+//    }
+//
+//    /**
+//     * Shorthand for {@link #from(long, BinaryByteUnit) from(size, BinaryByteUnit.YOBIBYTES)}.
+//     * 
+//     * @param size the size to convert
+//     * @return the given size converted from this {@code BinaryByteUnit} to {@link BinaryByteUnit#YOBIBYTES}
+//     */
+//    public long fromYobibytes(final long size) {
+//        return from(size, BinaryByteUnit.YOBIBYTES);
+//    }
+
+    /**
+     * Returns the <a href="https://physics.nist.gov/cuu/Units/binary.html" target="_blank">binary</a> symbol of this
+     * {@code BinaryByteUnit}.
+     * 
+     * @return the <a href="https://physics.nist.gov/cuu/Units/binary.html" target="_blank">binary</a> symbol of this
+     *         {@code BinaryByteUnit}
      */
     @Override
     public String toString() {
-        return prefix;
-    }
-
-    /**
-     * Formats the specified {@code value} into a human-readable string.
-     * 
-     * @param value the specified value
-     * @param unit  the unit of the value
-     * @return a human-readable string representing the specified value in the given unit
-     */
-    public static String format(double value, final BinaryByteUnit unit) {
-        return format(value, unit, Locale.getDefault());
-    }
-
-    /**
-     * Formats the specified {@code value} into a human-readable string.
-     * 
-     * @param value  the specified value
-     * @param unit   the unit of the value
-     * @param locale the {@link Locale} to use when formatting the value
-     * @return a human-readable string representing the specified value in the given unit
-     */
-    public static String format(double value, final BinaryByteUnit unit, final Locale locale) {
-        return format(value, unit, formats.computeIfAbsent(locale, k -> {
-            final NumberFormat format = NumberFormat.getNumberInstance(locale);
-            format.setMaximumFractionDigits(2);
-            return format;
-        }));
-    }
-
-    /**
-     * Formats the specified {@code value} into a human-readable string.
-     * 
-     * @param value  the specified value
-     * @param unit   the unit of the value
-     * @param format the {@link NumberFormat} to use when formatting the value
-     * @return a human-readable string representing the specified value in the given unit
-     */
-    public static String format(double value, final BinaryByteUnit unit, final NumberFormat format) {
-        if (unit == null)
-            throw new NullPointerException("unit == null");
-        if (!Double.isFinite(value)) // check that the value is not infinite or NaN
-            throw new IllegalArgumentException(Double.toString(value));
-        if (Double.doubleToRawLongBits(value) < 0) // check that the value is positive
-            throw new IllegalArgumentException("value < 0");
-        if (unit == BinaryByteUnit.BITS && value != Math.rint(value)) // BinaryByteUnit.BITS cannot be fractional
-            throw new IllegalArgumentException("invalid value: " + value + " bits");
-
-        int index = unit.ordinal();
-        final int base = value >= 1 ? unit == BinaryByteUnit.BITS ? 8 : 1024 : unit == BinaryByteUnit.BYTES ? 8 : 1024;
-
-        if (value >= 1)
-            while (value >= base && index++ < values().length - 1)
-                value /= base;
-        else
-            while (value != 0 && value < 1 && index-- < values().length)
-                value *= base;
-
-        final String size = format.format(value);
-
-        /*
-         * We have to check if the formatted value has been rounded to 1024, in which case it needs to become "1" and the unit
-         * needs to be incremented. The most naive and strait forward way to accomplish this is to parse the string using the
-         * same NumberFormat that produced it.
-         * 
-         * We can use intValue() to compare the result since we ensure it is not negative, we know it can never be more than
-         * 1024, and intValue() just casts it to a primitive int which effectively performs the Math.floor function on positive
-         * numbers.
-         */
-        try {
-            if (index < values().length && format.parse(size).intValue() == 1024)
-                return "1" + prefix(++index);
-        } catch (final ParseException e) {
-            throw new AssertionError(); // cannot happen
-        }
-
-        return size + prefix(index);
-    }
-
-    private static BinaryByteUnit prefix(final int index) {
-        return values()[Math.min(index, values().length - 1)];
+        return symbol;
     }
 
 }
